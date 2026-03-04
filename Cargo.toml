@@ -51,10 +51,10 @@ omeco = "0.2.1"
 hdf5-metno = { version = "0.12", default-features = false }
 ndarray = "0.17"
 hdf5-rt = { git = "https://github.com/tensor4all/hdf5-rt", default-features = false }
-tenferro-algebra = { path = "../tenferro-rs/tenferro-algebra" }
-tenferro-device = { path = "../tenferro-rs/tenferro-device" }
-tenferro-prims = { path = "../tenferro-rs/tenferro-prims" }
-tenferro-tensor = { path = "../tenferro-rs/tenferro-tensor" }
-tenferro-einsum = { path = "../tenferro-rs/tenferro-einsum" }
-tenferro-linalg = { path = "../tenferro-rs/tenferro-linalg" }
-tenferro-dyadtensor = { path = "../tenferro-rs/extension/tenferro-dyadtensor" }
+tenferro-algebra = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
+tenferro-device = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
+tenferro-prims = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
+tenferro-tensor = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
+tenferro-einsum = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
+tenferro-linalg = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
+tenferro-dyadtensor = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5043f3" }
