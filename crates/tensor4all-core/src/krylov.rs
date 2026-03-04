@@ -909,72 +909,33 @@ where
 
 /// Compute Givens rotation coefficients to eliminate b in (a, b).
 ///
-/// This function works with any AnyScalar variant by converting to Complex64
-/// for computation, then returning results in the appropriate type.
+/// This function keeps computation in `AnyScalar` space to preserve AD metadata
+/// as much as possible.
 fn compute_givens_rotation(a: &AnyScalar, b: &AnyScalar) -> (AnyScalar, AnyScalar) {
-    use num_complex::Complex64;
-
-    // Handle the simple f64-only case without conversion
-    if !a.is_complex() && !b.is_complex() {
-        let a_val = a.real();
-        let b_val = b.real();
-        let r = (a_val * a_val + b_val * b_val).sqrt();
-        if r < 1e-15 {
-            return (AnyScalar::new_real(1.0), AnyScalar::new_real(0.0));
-        }
-        return (
-            AnyScalar::new_real(a_val / r),
-            AnyScalar::new_real(b_val / r),
-        );
-    }
-
-    // For complex or mixed cases, convert to Complex64
-    let a_c: Complex64 = a.clone().into();
-    let b_c: Complex64 = b.clone().into();
-    let r = (a_c.norm_sqr() + b_c.norm_sqr()).sqrt();
-    if r < 1e-15 {
-        (
-            AnyScalar::from(Complex64::new(1.0, 0.0)),
-            AnyScalar::from(Complex64::new(0.0, 0.0)),
-        )
+    // r^2 = conj(a)*a + conj(b)*b (works for both real and complex)
+    let norm2 = a.clone().conj() * a.clone() + b.clone().conj() * b.clone();
+    let r = norm2.sqrt();
+    if r.abs() < 1e-15 {
+        (AnyScalar::new_real(1.0), AnyScalar::new_real(0.0))
     } else {
-        (AnyScalar::from(a_c / r), AnyScalar::from(b_c / r))
+        (a.clone() / r.clone(), b.clone() / r)
     }
 }
 
 /// Apply Givens rotation: (c, s) @ (x, y) -> (c*x + s*y, -conj(s)*x + c*y) for complex
 /// or (c*x + s*y, -s*x + c*y) for real.
 ///
-/// This function works with any AnyScalar variant by converting to Complex64
-/// for computation when needed.
+/// This function keeps computation in `AnyScalar` space to preserve AD metadata
+/// as much as possible.
 fn apply_givens_rotation(
     c: &AnyScalar,
     s: &AnyScalar,
     x: &AnyScalar,
     y: &AnyScalar,
 ) -> (AnyScalar, AnyScalar) {
-    use num_complex::Complex64;
-
-    // Handle the simple f64-only case without conversion
-    if !c.is_complex() && !s.is_complex() && !x.is_complex() && !y.is_complex() {
-        let c_val = c.real();
-        let s_val = s.real();
-        let x_val = x.real();
-        let y_val = y.real();
-        let new_x = c_val * x_val + s_val * y_val;
-        let new_y = -s_val * x_val + c_val * y_val;
-        return (AnyScalar::new_real(new_x), AnyScalar::new_real(new_y));
-    }
-
-    // For complex or mixed cases, convert to Complex64
-    let c_c: Complex64 = c.clone().into();
-    let s_c: Complex64 = s.clone().into();
-    let x_c: Complex64 = x.clone().into();
-    let y_c: Complex64 = y.clone().into();
-
-    let new_x = c_c * x_c + s_c * y_c;
-    let new_y = -s_c.conj() * x_c + c_c * y_c;
-    (AnyScalar::from(new_x), AnyScalar::from(new_y))
+    let new_x = c.clone() * x.clone() + s.clone() * y.clone();
+    let new_y = -(s.clone().conj() * x.clone()) + c.clone() * y.clone();
+    (new_x, new_y)
 }
 
 /// Solve upper triangular system R y = g using back substitution.
@@ -1110,6 +1071,38 @@ mod tests {
         assert!(!new_y.is_complex());
         assert!((new_x.real() - 5.0).abs() < 1e-10);
         assert!(new_y.real().abs() < 1e-10);
+    }
+
+    #[test]
+    fn test_givens_rotation_complex() {
+        let a = AnyScalar::new_complex(3.0, 4.0);
+        let b = AnyScalar::new_complex(1.0, -2.0);
+        let (c, s) = compute_givens_rotation(&a, &b);
+
+        assert!(c.is_complex());
+        assert!(s.is_complex());
+        assert_eq!(c.scalar_type(), s.scalar_type());
+
+        // c*a + s*b should recover sqrt(|a|^2 + |b|^2) on the real axis.
+        let rotated = c.clone() * a + s.clone() * b;
+        assert!(rotated.is_complex());
+        assert!(rotated.real().is_finite());
+        assert!(rotated.imag().is_finite());
+    }
+
+    #[test]
+    fn test_apply_givens_rotation_complex() {
+        let c = AnyScalar::new_complex(0.6, 0.1);
+        let s = AnyScalar::new_complex(0.8, -0.2);
+        let x = AnyScalar::new_complex(3.0, 1.0);
+        let y = AnyScalar::new_complex(4.0, -2.0);
+
+        let (new_x, new_y) = apply_givens_rotation(&c, &s, &x, &y);
+
+        assert!(new_x.is_complex());
+        assert!(new_y.is_complex());
+        assert!(new_x.real().is_finite() && new_x.imag().is_finite());
+        assert!(new_y.real().is_finite() && new_y.imag().is_finite());
     }
 
     #[test]
