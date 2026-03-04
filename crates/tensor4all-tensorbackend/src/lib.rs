@@ -6,7 +6,7 @@
 //! - [`AnyScalar`]: Dynamic scalar type (f64/Complex64)
 //! - tenferro-backed dispatch for SVD/QR/einsum operations
 //!
-//! This crate re-exports `mdarray` and `faer_traits` for downstream use.
+//! This crate re-exports `mdarray` for downstream use.
 //! Linalg backend details are kept internal behind tensorbackend APIs.
 //!
 //! ## Feature Flags
@@ -31,7 +31,5 @@ pub use storage::{
     DiagStorageF64, Storage, StorageScalar, SumFromStorage,
 };
 
-// Re-export underlying crates for downstream use
-// Linalg backend crates are intentionally not re-exported.
-pub use faer_traits;
+// Re-export underlying crates for downstream use.
 pub use mdarray;

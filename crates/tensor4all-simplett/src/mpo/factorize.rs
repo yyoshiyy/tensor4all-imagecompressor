@@ -70,7 +70,6 @@ pub struct FactorizeResult<T> {
 pub trait SVDScalar:
     crate::traits::TTScalar
     + ComplexFloat
-    + faer_traits::ComplexField
     + Default
     + From<<Self as ComplexFloat>::Real>
     + tensor4all_tensorbackend::backend::BackendLinalgScalar
@@ -84,7 +83,6 @@ impl<T> SVDScalar for T
 where
     T: crate::traits::TTScalar
         + ComplexFloat
-        + faer_traits::ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar

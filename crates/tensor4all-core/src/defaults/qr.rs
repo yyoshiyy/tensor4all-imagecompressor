@@ -8,7 +8,6 @@ use crate::global_default::GlobalDefault;
 use crate::truncation::TruncationParams;
 use crate::{unfold_split, StorageScalar, TensorDynLen};
 use num_complex::{Complex64, ComplexFloat};
-use tensor4all_tensorbackend::faer_traits::ComplexField;
 use tensor4all_tensorbackend::mdarray::{DSlice, DTensor};
 use thiserror::Error;
 
@@ -149,7 +148,6 @@ pub fn qr<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar,
@@ -203,7 +201,6 @@ pub fn qr_with<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar,

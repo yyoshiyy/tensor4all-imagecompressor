@@ -9,7 +9,6 @@ use crate::truncation::{HasTruncationParams, TruncationParams};
 use crate::{unfold_split, Storage, StorageScalar, TensorDynLen};
 use num_complex::{Complex64, ComplexFloat};
 use std::sync::Arc;
-use tensor4all_tensorbackend::faer_traits::ComplexField;
 use tensor4all_tensorbackend::mdarray::DSlice;
 use tensor4all_tensorbackend::{svd_backend, SvdResult};
 use thiserror::Error;
@@ -252,7 +251,6 @@ fn svd_truncated_usvh<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar,
@@ -364,7 +362,6 @@ pub fn svd<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar,
@@ -423,7 +420,6 @@ pub fn svd_with<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar,
@@ -496,7 +492,6 @@ pub(crate) fn svd_for_factorize<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + tensor4all_tensorbackend::backend::BackendLinalgScalar,

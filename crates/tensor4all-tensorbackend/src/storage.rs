@@ -1,6 +1,5 @@
-use faer_traits::ComplexField;
 use mdarray::{DTensor, DynRank, Rank, Shape, Tensor};
-use num_complex::Complex64;
+use num_complex::{Complex64, ComplexFloat};
 use num_traits::{One, Zero};
 use rand::Rng;
 use rand_distr::{Distribution, StandardNormal};
@@ -22,7 +21,7 @@ pub trait DenseScalar:
     + Add<Output = Self>
     + Mul<Output = Self>
     + AddAssign
-    + ComplexField
+    + ComplexFloat
     + Send
     + Sync
     + 'static

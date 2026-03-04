@@ -25,7 +25,6 @@ use num_complex::{Complex64, ComplexFloat};
 
 use crate::qr::{qr_with, QrOptions};
 use crate::svd::{svd_for_factorize, SvdOptions};
-use tensor4all_tensorbackend::faer_traits::ComplexField;
 
 // Re-export types from tensor_like for backwards compatibility
 pub use crate::tensor_like::{
@@ -82,7 +81,6 @@ fn factorize_impl<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + MatrixScalar
@@ -106,7 +104,6 @@ fn factorize_svd<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + MatrixScalar
@@ -176,7 +173,6 @@ fn factorize_qr<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + MatrixScalar
@@ -220,7 +216,6 @@ fn factorize_lu<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + MatrixScalar
@@ -289,7 +284,6 @@ fn factorize_ci<T>(
 where
     T: StorageScalar
         + ComplexFloat
-        + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
         + MatrixScalar
