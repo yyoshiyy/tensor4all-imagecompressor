@@ -1351,10 +1351,13 @@ impl Storage {
             )))
         } else {
             // All real
-            let a_f = f64::try_from(a.clone())
-                .map_err(|e| format!("failed to convert real AnyScalar `a` to f64: {e}"))?;
-            let b_f = f64::try_from(b.clone())
-                .map_err(|e| format!("failed to convert real AnyScalar `b` to f64: {e}"))?;
+            if !a.is_real() || !b.is_real() {
+                return Err(format!(
+                    "expected real scalars in real axpby branch: a={a}, b={b}"
+                ));
+            }
+            let a_f = a.real();
+            let b_f = b.real();
 
             match (self, other) {
                 (Storage::DenseF64(x), Storage::DenseF64(y)) => {
@@ -1865,9 +1868,7 @@ impl Mul<AnyScalar> for &Storage {
             let z: Complex64 = scalar.into();
             self * z
         } else {
-            let x = f64::try_from(scalar)
-                .unwrap_or_else(|e| panic!("failed to convert real AnyScalar into f64: {e}"));
-            self * x
+            self * scalar.real()
         }
     }
 }

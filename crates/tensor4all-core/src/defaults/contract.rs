@@ -403,24 +403,55 @@ fn contract_multi_impl(
         }
     }
 
-    // 6. Materialize inputs for backend einsum.
-    let mut storages: Vec<Arc<Storage>> = Vec::with_capacity(tensors.len());
-    let mut einsum_ids: Vec<Vec<usize>> = Vec::with_capacity(tensors.len());
-    let mut einsum_dims: Vec<Vec<usize>> = Vec::with_capacity(tensors.len());
+    // 6. Build backend einsum inputs directly from TensorData components.
+    //
+    // This avoids eagerly materializing each TensorDynLen into a single storage
+    // and preserves lazy permutation/component structure until contraction.
+    let per_tensor_id_map: Vec<HashMap<DynId, usize>> = tensors
+        .iter()
+        .enumerate()
+        .map(|(tensor_idx, tensor)| {
+            tensor
+                .indices
+                .iter()
+                .enumerate()
+                .map(|(axis_pos, idx)| (*idx.id(), ixs[tensor_idx][axis_pos]))
+                .collect()
+        })
+        .collect();
+
+    let mut storages: Vec<Arc<Storage>> = Vec::new();
+    let mut einsum_ids: Vec<Vec<usize>> = Vec::new();
+    let mut einsum_dims: Vec<Vec<usize>> = Vec::new();
+
     for (tensor_idx, tensor) in tensors.iter().enumerate() {
-        let storage = tensor.materialize_storage()?;
-        let ids = if storage.is_diag() {
-            // Diag tensor with unified axes: use one hyperedge label.
-            vec![ixs[tensor_idx][0]]
-        } else {
-            ixs[tensor_idx].clone()
-        };
-        storages.push(storage);
-        einsum_ids.push(ids);
-        einsum_dims.push(tensor.dims().to_vec());
+        let id_map = &per_tensor_id_map[tensor_idx];
+        for component in tensor.tensor_data().components() {
+            let mut ids: Vec<usize> = component
+                .index_ids
+                .iter()
+                .map(|id| {
+                    id_map.get(id).copied().ok_or_else(|| {
+                        anyhow::anyhow!(
+                            "internal error: missing internal id for component axis id {:?}",
+                            id
+                        )
+                    })
+                })
+                .collect::<Result<Vec<_>>>()?;
+
+            if component.storage.is_diag() && !ids.is_empty() {
+                // Diag storage is represented by one logical axis in backend einsum.
+                ids = vec![ids[0]];
+            }
+
+            storages.push(component.storage.clone());
+            einsum_ids.push(ids);
+            einsum_dims.push(component.dims.clone());
+        }
     }
 
-    let einsum_inputs: Vec<BackendEinsumInput<'_>> = (0..tensors.len())
+    let einsum_inputs: Vec<BackendEinsumInput<'_>> = (0..storages.len())
         .map(|i| BackendEinsumInput {
             ids: einsum_ids[i].as_slice(),
             storage: storages[i].as_ref(),

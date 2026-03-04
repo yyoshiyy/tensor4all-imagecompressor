@@ -11,6 +11,11 @@ Provide a non-ad-hoc AD scalar operator foundation required for tensor4all backe
 
 This note defines the implementation contract before coding.
 
+Authoritative AD rule notes for matrix/tensor operators (for example
+`solve`, `solve_triangular`, decomposition rules) belong in
+`tenferro-rs/docs/AD/*`. This document is intentionally limited to scalar
+operator rules.
+
 ## Scope
 
 In scope:
