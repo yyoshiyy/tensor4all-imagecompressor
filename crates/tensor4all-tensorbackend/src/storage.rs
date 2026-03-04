@@ -841,18 +841,12 @@ impl Storage {
 
     /// Check if this storage uses f64 scalar type.
     pub fn is_f64(&self) -> bool {
-        match self {
-            Self::DenseF64(_) | Self::DiagF64(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::DenseF64(_) | Self::DiagF64(_))
     }
 
     /// Check if this storage uses Complex64 scalar type.
     pub fn is_c64(&self) -> bool {
-        match self {
-            Self::DenseC64(_) | Self::DiagC64(_) => true,
-            _ => false,
-        }
+        matches!(self, Self::DenseC64(_) | Self::DiagC64(_))
     }
 
     /// Check if this storage uses complex scalar type.

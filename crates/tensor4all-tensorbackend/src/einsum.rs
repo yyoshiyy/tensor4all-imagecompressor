@@ -22,15 +22,38 @@ pub struct EinsumInput<'a> {
     pub dims: &'a [usize],
 }
 
+fn storage_physical_dims(storage: &Storage) -> Vec<usize> {
+    match storage {
+        Storage::DenseF64(ds) => ds.dims(),
+        Storage::DenseC64(ds) => ds.dims(),
+        Storage::DiagF64(ds) => vec![ds.len()],
+        Storage::DiagC64(ds) => vec![ds.len()],
+    }
+}
+
 fn id_to_u32(id: usize) -> Result<u32> {
     u32::try_from(id).map_err(|_| anyhow!("axis id {} does not fit in u32", id))
 }
 
-fn dense_f64_to_tensor(storage: &Storage) -> Result<Tensor<f64>> {
+fn dense_f64_to_tensor(storage: &Storage, logical_dims: &[usize]) -> Result<Tensor<f64>> {
     match storage {
         Storage::DenseF64(ds) => {
-            Tensor::from_slice(ds.as_slice(), &ds.dims(), MemoryOrder::RowMajor)
-                .map_err(|e| anyhow!("failed to build f64 tensor from dense storage: {}", e))
+            let logical_len: usize = logical_dims.iter().product();
+            if logical_len != ds.len() {
+                return Err(anyhow!(
+                    "logical dims {:?} (len={}) do not match dense f64 storage len {}",
+                    logical_dims,
+                    logical_len,
+                    ds.len()
+                ));
+            }
+            Tensor::from_slice(ds.as_slice(), logical_dims, MemoryOrder::RowMajor).map_err(|e| {
+                anyhow!(
+                    "failed to build f64 tensor from dense storage with logical dims {:?}: {}",
+                    logical_dims,
+                    e
+                )
+            })
         }
         Storage::DiagF64(ds) => {
             Tensor::from_slice(ds.as_slice(), &[ds.len()], MemoryOrder::RowMajor)
@@ -42,25 +65,53 @@ fn dense_f64_to_tensor(storage: &Storage) -> Result<Tensor<f64>> {
     }
 }
 
-fn dense_c64_to_tensor(storage: &Storage) -> Result<Tensor<Complex64>> {
+fn dense_c64_to_tensor(storage: &Storage, logical_dims: &[usize]) -> Result<Tensor<Complex64>> {
     match storage {
         Storage::DenseC64(ds) => {
-            Tensor::from_slice(ds.as_slice(), &ds.dims(), MemoryOrder::RowMajor)
-                .map_err(|e| anyhow!("failed to build c64 tensor from dense storage: {}", e))
+            let logical_len: usize = logical_dims.iter().product();
+            if logical_len != ds.len() {
+                return Err(anyhow!(
+                    "logical dims {:?} (len={}) do not match dense c64 storage len {}",
+                    logical_dims,
+                    logical_len,
+                    ds.len()
+                ));
+            }
+            Tensor::from_slice(ds.as_slice(), logical_dims, MemoryOrder::RowMajor).map_err(|e| {
+                anyhow!(
+                    "failed to build c64 tensor from dense storage with logical dims {:?}: {}",
+                    logical_dims,
+                    e
+                )
+            })
         }
         Storage::DiagC64(ds) => {
             Tensor::from_slice(ds.as_slice(), &[ds.len()], MemoryOrder::RowMajor)
                 .map_err(|e| anyhow!("failed to build c64 tensor from diag storage: {}", e))
         }
         Storage::DenseF64(ds) => {
+            let logical_len: usize = logical_dims.iter().product();
+            if logical_len != ds.len() {
+                return Err(anyhow!(
+                    "logical dims {:?} (len={}) do not match dense f64 storage len {} for promotion",
+                    logical_dims,
+                    logical_len,
+                    ds.len()
+                ));
+            }
             let promoted: Vec<Complex64> = ds
                 .as_slice()
                 .iter()
                 .copied()
                 .map(|x| Complex64::new(x, 0.0))
                 .collect();
-            Tensor::from_slice(&promoted, &ds.dims(), MemoryOrder::RowMajor)
-                .map_err(|e| anyhow!("failed to promote dense f64 tensor to c64: {}", e))
+            Tensor::from_slice(&promoted, logical_dims, MemoryOrder::RowMajor).map_err(|e| {
+                anyhow!(
+                    "failed to promote dense f64 tensor to c64 with logical dims {:?}: {}",
+                    logical_dims,
+                    e
+                )
+            })
         }
         Storage::DiagF64(ds) => {
             let promoted: Vec<Complex64> = ds
@@ -145,8 +196,20 @@ pub fn einsum_storage(inputs: &[EinsumInput<'_>], output_ids: &[usize]) -> Resul
     if has_complex {
         let operands: Vec<Tensor<Complex64>> = inputs
             .iter()
-            .map(|input| dense_c64_to_tensor(input.storage))
+            .map(|input| dense_c64_to_tensor(input.storage, input.dims))
             .collect::<Result<_>>()?;
+        let operand_dims: Vec<Vec<usize>> = operands.iter().map(|t| t.dims().to_vec()).collect();
+        let input_summary: Vec<String> = inputs
+            .iter()
+            .map(|input| {
+                format!(
+                    "ids={:?}, logical_dims={:?}, physical_dims={:?}",
+                    input.ids,
+                    input.dims,
+                    storage_physical_dims(input.storage)
+                )
+            })
+            .collect();
         let operand_refs: Vec<&Tensor<Complex64>> = operands.iter().collect();
         let result = with_tenferro_ctx("einsum(c64)", |ctx| {
             einsum_with_subscripts::<Standard<Complex64>, ActivePrimsBackend>(
@@ -155,14 +218,33 @@ pub fn einsum_storage(inputs: &[EinsumInput<'_>], output_ids: &[usize]) -> Resul
                 &operand_refs,
                 None,
             )
-            .map_err(|e| anyhow!("tenferro einsum (c64) failed: {}", e))
+            .map_err(|e| {
+                anyhow!(
+                    "tenferro einsum (c64) failed: {}; input=[{}]; operand_dims={:?}",
+                    e,
+                    input_summary.join(" | "),
+                    operand_dims
+                )
+            })
         })?;
         tensor_c64_to_storage(result, output_ids)
     } else {
         let operands: Vec<Tensor<f64>> = inputs
             .iter()
-            .map(|input| dense_f64_to_tensor(input.storage))
+            .map(|input| dense_f64_to_tensor(input.storage, input.dims))
             .collect::<Result<_>>()?;
+        let operand_dims: Vec<Vec<usize>> = operands.iter().map(|t| t.dims().to_vec()).collect();
+        let input_summary: Vec<String> = inputs
+            .iter()
+            .map(|input| {
+                format!(
+                    "ids={:?}, logical_dims={:?}, physical_dims={:?}",
+                    input.ids,
+                    input.dims,
+                    storage_physical_dims(input.storage)
+                )
+            })
+            .collect();
         let operand_refs: Vec<&Tensor<f64>> = operands.iter().collect();
         let result = with_tenferro_ctx("einsum(f64)", |ctx| {
             einsum_with_subscripts::<Standard<f64>, ActivePrimsBackend>(
@@ -171,7 +253,14 @@ pub fn einsum_storage(inputs: &[EinsumInput<'_>], output_ids: &[usize]) -> Resul
                 &operand_refs,
                 None,
             )
-            .map_err(|e| anyhow!("tenferro einsum (f64) failed: {}", e))
+            .map_err(|e| {
+                anyhow!(
+                    "tenferro einsum (f64) failed: {}; input=[{}]; operand_dims={:?}",
+                    e,
+                    input_summary.join(" | "),
+                    operand_dims
+                )
+            })
         })?;
         tensor_f64_to_storage(result, output_ids)
     }
@@ -302,7 +391,7 @@ mod tests {
             (1..=18).map(|x| x as f64).collect(),
             &[3, 2, 3],
         ));
-        let t = dense_f64_to_tensor(&src).expect("to tensor");
+        let t = dense_f64_to_tensor(&src, &[3, 2, 3]).expect("to tensor");
         let roundtrip = tensor_f64_to_storage(t, &[0, 1, 2]).expect("to storage");
         match roundtrip {
             Storage::DenseF64(ds) => {
@@ -362,6 +451,30 @@ mod tests {
                 assert_eq!(e.as_slice(), x.as_slice());
             }
             (e, x) => panic!("expected DenseF64/DenseF64, got {e:?} and {x:?}"),
+        }
+    }
+
+    #[test]
+    fn test_einsum_storage_uses_logical_dims_not_storage_rank() {
+        // Storage shape (rank-6) can differ from logical tensor shape (rank-3)
+        // as long as total element count matches. einsum should use logical dims.
+        let storage = Storage::DenseF64(DenseStorageF64::from_vec_with_shape(
+            vec![2.0],
+            &[1, 1, 1, 1, 1, 1],
+        ));
+        let input = EinsumInput {
+            ids: &[0, 1, 2],
+            storage: &storage,
+            dims: &[1, 1, 1],
+        };
+
+        let result = einsum_storage(&[input], &[0, 1, 2]).expect("einsum should succeed");
+        match result {
+            Storage::DenseF64(ds) => {
+                assert_eq!(ds.dims(), vec![1, 1, 1]);
+                assert_eq!(ds.as_slice(), &[2.0]);
+            }
+            other => panic!("expected DenseF64, got {other:?}"),
         }
     }
 }
