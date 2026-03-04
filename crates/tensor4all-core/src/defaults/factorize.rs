@@ -85,7 +85,8 @@ where
         + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
-        + MatrixScalar,
+        + MatrixScalar
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     match options.alg {
@@ -108,7 +109,8 @@ where
         + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
-        + MatrixScalar,
+        + MatrixScalar
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     let mut svd_options = SvdOptions::default();
@@ -177,7 +179,8 @@ where
         + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
-        + MatrixScalar,
+        + MatrixScalar
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     if options.canonical == Canonical::Right {
@@ -220,7 +223,8 @@ where
         + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
-        + MatrixScalar,
+        + MatrixScalar
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     // Unfold tensor into matrix
@@ -288,7 +292,8 @@ where
         + ComplexField
         + Default
         + From<<T as ComplexFloat>::Real>
-        + MatrixScalar,
+        + MatrixScalar
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     // Unfold tensor into matrix

@@ -56,4 +56,10 @@ omeco = "0.2.1"
 hdf5-metno = { version = "0.12", default-features = false }
 ndarray = "0.17"
 hdf5-rt = { git = "https://github.com/tensor4all/hdf5-rt", default-features = false }
-
+tenferro-algebra = { path = "../tenferro-rs/tenferro-algebra" }
+tenferro-device = { path = "../tenferro-rs/tenferro-device" }
+tenferro-prims = { path = "../tenferro-rs/tenferro-prims" }
+tenferro-tensor = { path = "../tenferro-rs/tenferro-tensor" }
+tenferro-einsum = { path = "../tenferro-rs/tenferro-einsum" }
+tenferro-linalg = { path = "../tenferro-rs/tenferro-linalg" }
+tenferro-dyadtensor = { path = "../tenferro-rs/extension/tenferro-dyadtensor" }

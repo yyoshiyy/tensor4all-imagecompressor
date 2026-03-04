@@ -12,9 +12,8 @@ license.workspace = true
 repository.workspace = true
 
 [features]
-default = ["backend-faer"]
-backend-faer = ["tensor4all-tensorbackend/backend-faer"]
-backend-lapack = ["tensor4all-tensorbackend/backend-lapack"]
+default = ["backend-tenferro"]
+backend-tenferro = ["tensor4all-tensorbackend/backend-tenferro"]
 
 [dependencies]
 num-complex.workspace = true

@@ -147,7 +147,12 @@ pub fn qr<T>(
     left_inds: &[DynIndex],
 ) -> Result<(TensorDynLen, TensorDynLen), QrError>
 where
-    T: StorageScalar + ComplexFloat + ComplexField + Default + From<<T as ComplexFloat>::Real>,
+    T: StorageScalar
+        + ComplexFloat
+        + ComplexField
+        + Default
+        + From<<T as ComplexFloat>::Real>
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     qr_with::<T>(t, left_inds, &QrOptions::default())
@@ -196,7 +201,12 @@ pub fn qr_with<T>(
     options: &QrOptions,
 ) -> Result<(TensorDynLen, TensorDynLen), QrError>
 where
-    T: StorageScalar + ComplexFloat + ComplexField + Default + From<<T as ComplexFloat>::Real>,
+    T: StorageScalar
+        + ComplexFloat
+        + ComplexField
+        + Default
+        + From<<T as ComplexFloat>::Real>
+        + tensor4all_tensorbackend::backend::BackendLinalgScalar,
     <T as ComplexFloat>::Real: Into<f64> + 'static,
 {
     // Determine rtol to use

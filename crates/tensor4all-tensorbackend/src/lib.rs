@@ -4,16 +4,14 @@
 //! This crate provides:
 //! - [`Storage`]: Dynamic tensor storage (f64/Complex64, Dense/Diag)
 //! - [`AnyScalar`]: Dynamic scalar type (f64/Complex64)
-//! - Backend dispatch for SVD and QR operations via [`SvdResult`]
+//! - tenferro-backed dispatch for SVD/QR/einsum operations
 //!
 //! This crate re-exports `mdarray` and `faer_traits` for downstream use.
-//! The `mdarray-linalg` dependency is kept internal to isolate API changes.
+//! Linalg backend details are kept internal behind tensorbackend APIs.
 //!
 //! ## Feature Flags
 //!
-//! - `backend-faer` (default): Use FAER for linear algebra operations
-//! - `backend-lapack`: Use LAPACK for linear algebra operations
-//! - `backend-libtorch`: Enable PyTorch/libtorch backend for tensor operations and autograd
+//! - `backend-tenferro` (default): Use tenferro backend for linalg/einsum
 
 /// Dynamic scalar types supporting f64 and Complex64.
 pub mod any_scalar;
@@ -23,10 +21,7 @@ pub mod backend;
 pub mod einsum;
 /// Tensor storage types (Dense and Diagonal).
 pub mod storage;
-
-// Torch backend module (feature-gated)
-#[cfg(feature = "backend-libtorch")]
-pub mod torch;
+pub(crate) mod tenferro_bridge;
 
 pub use any_scalar::AnyScalar;
 pub use backend::{qr_backend, svd_backend, SvdResult};
@@ -37,6 +32,6 @@ pub use storage::{
 };
 
 // Re-export underlying crates for downstream use
-// Note: mdarray_linalg is NOT re-exported to keep its API internal
+// Linalg backend crates are intentionally not re-exported.
 pub use faer_traits;
 pub use mdarray;
