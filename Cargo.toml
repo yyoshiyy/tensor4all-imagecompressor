@@ -13,6 +13,7 @@ members = [
     "crates/tensor4all-quanticstci",
     "crates/tensor4all-capi",
     "crates/tensor4all-hdf5",
+    "crates/tensor4all-imagecompressor",
     "tools/api-dump",
     "xtask",
 ]
@@ -58,3 +59,4 @@ tenferro-tensor = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f5
 tenferro-einsum = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f574e5ce6adb5be6c8f63c86a2395067aa724106" }
 tenferro-linalg = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f574e5ce6adb5be6c8f63c86a2395067aa724106" }
 tenferro-dyadtensor = { git = "https://github.com/tensor4all/tenferro-rs", rev = "f574e5ce6adb5be6c8f63c86a2395067aa724106" }
+image = "0.25"

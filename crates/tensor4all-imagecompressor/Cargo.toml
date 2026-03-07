@@ -1,0 +1,14 @@
+[package]
+name = "tensor4all-imagecompressor"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+
+[dependencies]
+tensor4all-simplett = { path = "../tensor4all-simplett" }
+quanticsgrids = { path = "../quanticsgrids" }
+matrixci = { path = "../matrixci" }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+image = { workspace = true }
