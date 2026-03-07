@@ -261,7 +261,7 @@ fn test_qr_rank3_reconstruction_via_contract() {
     let tensor: TensorDynLen = TensorDynLen::new(vec![i.clone(), j.clone(), k.clone()], storage);
 
     // Split [i] vs [j, k]: 3×20 matrix
-    let err = qr_reconstruction_error_f64(&tensor, &[i.clone()]);
+    let err = qr_reconstruction_error_f64(&tensor, std::slice::from_ref(&i));
     assert!(err < 1e-10, "rank-3 QR reconstruction error: {err:.3e}");
 
     // Split [i, j] vs [k]: 12×5 matrix
@@ -288,7 +288,7 @@ fn test_qr_rank4_reconstruction_via_contract() {
     assert!(err < 1e-10, "rank-4 QR [a,b] vs [c,d] error: {err:.3e}");
 
     // Split [a] vs [b, c, d]: 3×16 matrix
-    let err = qr_reconstruction_error_f64(&tensor, &[a.clone()]);
+    let err = qr_reconstruction_error_f64(&tensor, std::slice::from_ref(&a));
     assert!(err < 1e-10, "rank-4 QR [a] vs [b,c,d] error: {err:.3e}");
 
     // Non-contiguous split [a, c] vs [b, d]: 12×4 matrix

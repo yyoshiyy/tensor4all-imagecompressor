@@ -19,6 +19,7 @@ fn make_buggy_tensor() -> TensorDynLen {
     let idx_d = DynIndex::new_dyn_with_tag(5, "d").unwrap();
 
     #[rustfmt::skip]
+    #[allow(clippy::excessive_precision)]
     let data: Vec<Complex64> = vec![
         Complex64::new(-3.71572844459456819e-1, 1.10576880726913718e0),
         Complex64::new(-4.04336097845196418e-1, 9.74397622910009309e-1),
