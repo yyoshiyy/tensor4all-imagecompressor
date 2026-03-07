@@ -1,8 +1,10 @@
-//! Minimal reproduction: QR factorize reconstruction fails on specific data.
+//! Regression test: QR factorize with non-pivoting QR used to truncate rank
+//! incorrectly by checking only R's diagonal elements (which can be zero even
+//! when the row has significant off-diagonal entries).
 //!
-//! A rank-4 tensor [5,2,2,5] with specific complex data gives QR reconstruction
+//! A rank-4 tensor [5,2,2,5] with specific complex data gave QR reconstruction
 //! error ~4e-3 when factorized with left_inds = first 2 indices (10x10 matrix).
-//! SVD gives ~1e-14 on the same data. The bug is data-dependent.
+//! SVD gives ~1e-14 on the same data.
 
 use num_complex::Complex64;
 use std::sync::Arc;
@@ -127,8 +129,8 @@ fn make_buggy_tensor() -> TensorDynLen {
     TensorDynLen::new(vec![idx_a, idx_b, idx_c, idx_d], storage)
 }
 
-fn qr_reconstruction_error(t: &TensorDynLen, left_inds: &[DynIndex]) -> f64 {
-    let result = factorize(t, left_inds, &FactorizeOptions::qr()).unwrap();
+fn reconstruction_error(t: &TensorDynLen, left_inds: &[DynIndex], opts: &FactorizeOptions) -> f64 {
+    let result = factorize(t, left_inds, opts).unwrap();
     let recon = result.left.contract(&result.right);
     let neg = recon
         .scale(tensor4all_core::AnyScalar::new_real(-1.0))
@@ -137,30 +139,16 @@ fn qr_reconstruction_error(t: &TensorDynLen, left_inds: &[DynIndex]) -> f64 {
     diff.norm()
 }
 
-fn svd_reconstruction_error(t: &TensorDynLen, left_inds: &[DynIndex]) -> f64 {
-    let result = factorize(t, left_inds, &FactorizeOptions::svd()).unwrap();
-    let recon = result.left.contract(&result.right);
-    let neg = recon
-        .scale(tensor4all_core::AnyScalar::new_real(-1.0))
-        .unwrap();
-    let diff = t.add(&neg).unwrap();
-    diff.norm()
-}
-
-/// QR factorize gives reconstruction error ~4e-3 on this specific data.
-/// SVD gives ~1e-14 on the same data.
+/// Regression: QR and SVD should both reconstruct this tensor to machine precision.
 #[test]
-fn test_qr_reconstruction_bug() {
+fn test_qr_reconstruction_regression() {
     let t = make_buggy_tensor(); // [a(5), b(2), c(2), d(5)]
     let a = t.indices[0].clone();
     let b = t.indices[1].clone();
+    let left_inds = [a, b];
 
-    // Unfolds as 10x10 matrix (rows = a*b, cols = c*d)
-    let qr_err = qr_reconstruction_error(&t, &[a.clone(), b.clone()]);
-    let svd_err = svd_reconstruction_error(&t, &[a.clone(), b.clone()]);
-
-    eprintln!("QR  reconstruction error: {qr_err:.3e}");
-    eprintln!("SVD reconstruction error: {svd_err:.3e}");
+    let qr_err = reconstruction_error(&t, &left_inds, &FactorizeOptions::qr());
+    let svd_err = reconstruction_error(&t, &left_inds, &FactorizeOptions::svd());
 
     assert!(
         svd_err < 1e-10,
