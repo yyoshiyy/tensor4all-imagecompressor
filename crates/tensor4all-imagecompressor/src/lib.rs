@@ -5,7 +5,9 @@
 
 mod compress;
 mod error;
+pub mod metrics;
 mod reconstruct;
+pub mod synthetic;
 
 pub use compress::{compress, CompressOptions, CompressedImage};
 pub use error::ImageCompressorError;
@@ -59,6 +61,41 @@ mod tests {
         };
         let compressed = compress(&dyn_img, opts).unwrap();
         let reconstructed = compressed.reconstruct(4, 4).unwrap();
+        for (orig, recon) in img_buf.pixels().zip(reconstructed.pixels()) {
+            for c in 0..3 {
+                let diff = (orig[c] as i32 - recon[c] as i32).abs();
+                assert!(diff <= 5, "channel {c} diff too large: {diff}");
+            }
+        }
+    }
+
+    #[test]
+    fn test_reconstruct_original_size_non_power_of_two() {
+        let width = 5u32;
+        let height = 3u32;
+        let mut img_buf = RgbImage::new(width, height);
+        for y in 0..height {
+            for x in 0..width {
+                img_buf.put_pixel(
+                    x,
+                    y,
+                    Rgb([
+                        ((x * 255) / (width - 1)) as u8,
+                        ((y * 255) / (height - 1)) as u8,
+                        64u8,
+                    ]),
+                );
+            }
+        }
+
+        let dyn_img = DynamicImage::ImageRgb8(img_buf.clone());
+        let opts = CompressOptions {
+            tolerance: 1e-10,
+            max_rank: None,
+        };
+        let compressed = compress(&dyn_img, opts).unwrap();
+        let reconstructed = compressed.reconstruct(width, height).unwrap();
+
         for (orig, recon) in img_buf.pixels().zip(reconstructed.pixels()) {
             for c in 0..3 {
                 let diff = (orig[c] as i32 - recon[c] as i32).abs();

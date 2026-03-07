@@ -12,3 +12,4 @@ matrixci = { path = "../matrixci" }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 image = { workspace = true }
+rand = { workspace = true }

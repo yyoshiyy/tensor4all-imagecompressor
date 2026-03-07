@@ -12,27 +12,32 @@ impl CompressedImage {
             return Err(ImageCompressorError::InvalidImageSize { width, height });
         }
 
-        let grid_size = (1usize << self.bits) as f64;
+        let grid_size = 1usize << self.bits;
         let w = width as usize;
         let h = height as usize;
+        let source_w = self.original_width as usize;
+        let source_h = self.original_height as usize;
 
         let mut pixels = vec![0u8; w * h * 3];
 
         for py in 0..h {
             for px in 0..w {
-                // Scale output pixel to QTT grid coordinates (0-indexed)
-                let gx = if w > 1 {
-                    ((px as f64) * (grid_size - 1.0) / (w as f64 - 1.0)).round() as usize
+                // Scale output pixel to the original image domain first, then map to QTT grid.
+                // This avoids sampling zero-padded tail regions for non-power-of-two inputs.
+                let src_x = if w > 1 {
+                    ((px as f64) * ((source_w.saturating_sub(1)) as f64) / (w as f64 - 1.0)).round()
+                        as usize
                 } else {
                     0
                 };
-                let gy = if h > 1 {
-                    ((py as f64) * (grid_size - 1.0) / (h as f64 - 1.0)).round() as usize
+                let src_y = if h > 1 {
+                    ((py as f64) * ((source_h.saturating_sub(1)) as f64) / (h as f64 - 1.0)).round()
+                        as usize
                 } else {
                     0
                 };
-                let gx = gx.min((1usize << self.bits) - 1);
-                let gy = gy.min((1usize << self.bits) - 1);
+                let gx = src_x.min(source_w.saturating_sub(1)).min(grid_size - 1);
+                let gy = src_y.min(source_h.saturating_sub(1)).min(grid_size - 1);
 
                 // QuanticsTensorCI2::evaluate uses 1-indexed grid coordinates.
                 let gx_idx = (gx as i64) + 1;
