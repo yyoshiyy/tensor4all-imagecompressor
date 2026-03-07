@@ -423,6 +423,7 @@ mod tests {
     use super::*;
     use crate::index::DefaultIndex as Index;
     use std::sync::Arc;
+    use tensor4all_tensorbackend::mdarray::DTensor;
 
     #[test]
     fn compute_retained_rank_qr_from_storage_truncates_and_keeps_one() {
@@ -572,5 +573,97 @@ mod tests {
         .unwrap();
         assert_eq!(q.dims(), vec![2, 1]);
         assert_eq!(r.dims(), vec![1, 2]);
+    }
+
+    /// Helper: build an upper-triangular R matrix from diagonal and off-diagonal entries.
+    fn make_upper_triangular(n: usize, entries: &[(usize, usize, f64)]) -> DTensor<f64, 2> {
+        DTensor::<f64, 2>::from_fn([n, n], |idx| {
+            entries
+                .iter()
+                .find(|(i, j, _)| *i == idx[0] && *j == idx[1])
+                .map(|(_, _, v)| *v)
+                .unwrap_or(0.0)
+        })
+    }
+
+    #[test]
+    fn test_retained_rank_zero_diagonal_nonzero_offdiag() {
+        // 3×4 R with zero diagonal at row 1 but nonzero off-diag
+        // R = [[10, 1, 1, 1],
+        //      [ 0, 0, 5, 5],   ← diagonal=0, but row norm = sqrt(50) ≈ 7.07
+        //      [ 0, 0, 0, 1]]
+        let r = DTensor::<f64, 2>::from_fn([3, 4], |idx| match (idx[0], idx[1]) {
+            (0, 0) => 10.0,
+            (0, 1) => 1.0,
+            (0, 2) => 1.0,
+            (0, 3) => 1.0,
+            (1, 2) => 5.0,
+            (1, 3) => 5.0,
+            (2, 3) => 1.0,
+            _ => 0.0,
+        });
+        // rtol=1e-15: all rows should be retained
+        assert_eq!(compute_retained_rank_qr(&r, 3, 4, 1e-15), 3);
+    }
+
+    #[test]
+    fn test_retained_rank_all_zero_rows() {
+        // R with only row 0 non-zero
+        let r = make_upper_triangular(3, &[(0, 0, 5.0), (0, 1, 3.0), (0, 2, 1.0)]);
+        assert_eq!(compute_retained_rank_qr(&r, 3, 3, 1e-15), 1);
+    }
+
+    #[test]
+    fn test_retained_rank_full_rank() {
+        // Fully non-degenerate upper triangular
+        let r = make_upper_triangular(
+            3,
+            &[
+                (0, 0, 10.0),
+                (0, 1, 1.0),
+                (0, 2, 1.0),
+                (1, 1, 8.0),
+                (1, 2, 1.0),
+                (2, 2, 6.0),
+            ],
+        );
+        assert_eq!(compute_retained_rank_qr(&r, 3, 3, 1e-15), 3);
+    }
+
+    #[test]
+    fn test_retained_rank_rtol_truncation() {
+        let r = make_upper_triangular(
+            3,
+            &[
+                (0, 0, 10.0),
+                (0, 1, 0.5),
+                (0, 2, 0.1),
+                (1, 1, 0.01),
+                (2, 2, 0.001),
+            ],
+        );
+        assert_eq!(compute_retained_rank_qr(&r, 3, 3, 0.01), 1);
+        assert_eq!(compute_retained_rank_qr(&r, 3, 3, 1e-4), 2);
+    }
+
+    #[test]
+    fn test_retained_rank_zero_matrix() {
+        let r = DTensor::<f64, 2>::from_fn([3, 3], |_| 0.0);
+        assert_eq!(compute_retained_rank_qr(&r, 3, 3, 1e-15), 1);
+    }
+
+    #[test]
+    fn test_retained_rank_complex() {
+        use num_complex::Complex64;
+        let r = DTensor::<Complex64, 2>::from_fn([2, 3], |idx| match (idx[0], idx[1]) {
+            (0, 0) => Complex64::new(5.0, 3.0),
+            (0, 1) => Complex64::new(1.0, 0.0),
+            (0, 2) => Complex64::new(0.0, 1.0),
+            (1, 1) => Complex64::new(0.0, 0.0), // zero diagonal
+            (1, 2) => Complex64::new(3.0, 4.0), // norm = 5.0
+            _ => Complex64::new(0.0, 0.0),
+        });
+        // Row 1 has zero diagonal but norm = 5.0, should NOT be truncated
+        assert_eq!(compute_retained_rank_qr(&r, 2, 3, 1e-15), 2);
     }
 }
