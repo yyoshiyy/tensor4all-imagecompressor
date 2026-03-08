@@ -85,7 +85,6 @@ fn as_diagonal(
     new_dims.splice(s_pos..s_pos + 1, vec![dim, dim]);
 
     let total_new: usize = new_dims.iter().product();
-    let total_old: usize = dims.iter().product();
     let data = tensor.to_vec_f64().unwrap();
     let mut new_data = vec![0.0f64; total_new];
 
@@ -125,7 +124,6 @@ fn extract_diagonal(tensor: &TensorDynLen, s: &DynIndex, s_result: &DynIndex) ->
         .collect();
     let new_dims: Vec<usize> = new_indices.iter().map(|idx| idx.dim()).collect();
     let new_total: usize = new_dims.iter().product();
-    let total: usize = dims.iter().product();
     let data = tensor.to_vec_f64().unwrap();
     let mut new_data = vec![0.0f64; new_total];
 
